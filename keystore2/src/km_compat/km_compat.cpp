@@ -31,7 +31,7 @@
 #include <keymasterV4_1/Keymaster.h>
 #include <keymasterV4_1/Keymaster3.h>
 #include <keymasterV4_1/Keymaster4.h>
-#include <keystore/legacy_keymaster_device_wrapper.h>
+#include "legacy_keymaster_device_wrapper.h"
 #include <chrono>
 
 #include "certificate_utils.h"

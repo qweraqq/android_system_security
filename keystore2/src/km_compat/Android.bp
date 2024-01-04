@@ -82,6 +82,11 @@ cc_library {
         "libkeymaster4support",
         "libkeymaster4_1support",
         "libsoftkeymasterdevice",
+        "libhidlbase",
+        "libkeymaster_messages",
+        "libkeymaster_portable",
+        "libkeystore-attestation-application-id"
+        "libkeystore_aidl",
     ],
 }
 
