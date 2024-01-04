@@ -86,7 +86,6 @@ cc_library {
         "libkeymaster_messages",
         "libkeymaster_portable",
         "libkeystore-attestation-application-id",
-        "libkeystore_aidl",
     ],
 }
 
