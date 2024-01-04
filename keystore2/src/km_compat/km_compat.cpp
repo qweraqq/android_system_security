@@ -31,7 +31,7 @@
 #include <keymasterV4_1/Keymaster.h>
 #include <keymasterV4_1/Keymaster3.h>
 #include <keymasterV4_1/Keymaster4.h>
-
+#include <keystore/legacy_keymaster_device_wrapper.h>
 #include <chrono>
 
 #include "certificate_utils.h"
@@ -1426,6 +1426,12 @@ KeymasterDevices initializeKeymasters() {
         result[SecurityLevel::SOFTWARE] = nullptr;
     }
     // The software bit was removed since we do not need it.
+    // https://github.com/ProtonAOSP/android_system_security/blob/cdd3594d90fa7c29999b2ddbb66ff3ed04e4e2ab/keystore/keystore_main.cpp#L119C1-L123C6
+    if (!result[SecurityLevel::SOFTWARE]) {
+        auto fbdev = android::keystore::makeSoftwareKeymasterDevice();
+        CHECK(fbdev.get()) << "Unable to create Software Keymaster Device";
+        result[SecurityLevel::SOFTWARE] = new Keymaster3(fbdev, "Software");
+    }
     return result;
 }
 
