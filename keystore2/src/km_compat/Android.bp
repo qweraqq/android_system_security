@@ -55,7 +55,7 @@ rust_test {
 
 cc_library {
     name: "libkm_compat",
-    srcs: ["km_compat.cpp"],
+    srcs: ["km_compat.cpp", "legacy_keymaster_device_wrapper.cpp"],
     defaults: [
         "keymint_use_latest_hal_aidl_ndk_shared",
         "keystore2_use_latest_aidl_ndk_shared",
@@ -76,6 +76,12 @@ cc_library {
         "libkeymint_support",
         "libkeystore2_crypto",
         "libutils",
+        "libsoftkeymasterdevice",
+        "libcutils",
+        "libhardware",
+        "libkeymaster4support",
+        "libkeymaster4_1support",
+        "libsoftkeymasterdevice",
     ],
 }
 
