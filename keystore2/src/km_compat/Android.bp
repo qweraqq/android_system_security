@@ -81,7 +81,6 @@ cc_library {
         "libhardware",
         "libkeymaster4support",
         "libkeymaster4_1support",
-        "libsoftkeymasterdevice",
         "libhidlbase",
         "libkeymaster_messages",
         "libkeymaster_portable",
