@@ -1422,6 +1422,7 @@ KeymasterDevices initializeKeymasters() {
 
     auto fbdev = android::keystore2::makeSoftwareKeymasterDevice();
     CHECK(fbdev.get()) << "Unable to create Software Keymaster Device";
+    LOG(WARNING) << "Software Keymaster Device -> replace TEE";
     result[SecurityLevel::SOFTWARE] = new Keymaster3(fbdev, "Software");
 
     if (result[SecurityLevel::SOFTWARE] && !result[SecurityLevel::TRUSTED_ENVIRONMENT]) {
