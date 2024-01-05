@@ -1527,7 +1527,12 @@ KeystoreCompatService::getKeyMintDevice(KeyMintSecurityLevel in_securityLevel,
                                         std::shared_ptr<IKeyMintDevice>* _aidl_return) {
     auto i = mDeviceCache.find(in_securityLevel);
     if (i == mDeviceCache.end()) {
-        auto device = KeyMintDevice::createKeyMintDevice(in_securityLevel);
+//        auto device = KeyMintDevice::createKeyMintDevice(in_securityLevel);
+//        auto fbdev = android::keystore2::makeSoftwareKeymasterDevice();
+//        CHECK(fbdev.get()) << "Unable to create Software Keymaster Device";
+        LOG(WARNING) << "Software Keymaster Device -> replace TEE";
+//        auto device = new Keymaster3(fbdev, "Software");
+        auto device = KeyMintDevice::createKeyMintDevice(KeyMintSecurityLevel::SOFTWARE);
         if (!device) {
             return ScopedAStatus::fromStatus(STATUS_NAME_NOT_FOUND);
         }

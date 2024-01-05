@@ -204,7 +204,7 @@ static inline hidl_vec<KeyParameter> kmParamSet2Hidl(const keymaster_key_param_s
 
 // Methods from ::android::hardware::keymaster::V3_0::IKeymasterDevice follow.
 Return<void> LegacyKeymasterDeviceWrapper::getHardwareFeatures(getHardwareFeatures_cb _hidl_cb) {
-    _hidl_cb(false, false, false, false, false, "Fallback Device", "Google Android Security");
+    _hidl_cb(true, true, true, true, true, "Google", "Google Android Security");
     return Void();
 }
 
