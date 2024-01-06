@@ -31,7 +31,6 @@
 #include <keymasterV4_1/Keymaster.h>
 #include <keymasterV4_1/Keymaster3.h>
 #include <keymasterV4_1/Keymaster4.h>
-#include "legacy_keymaster_device_wrapper.h"
 #include <chrono>
 
 #include "certificate_utils.h"
@@ -1419,25 +1418,13 @@ KeymasterDevices initializeKeymasters() {
         result = enumerateKeymasterDevices<Keymaster3>(serviceManager.get());
     }
     if (softKeymaster) result[SecurityLevel::SOFTWARE] = softKeymaster;
-
-    auto fbdev = android::keystore2::makeSoftwareKeymasterDevice();
-    CHECK(fbdev.get()) << "Unable to create Software Keymaster Device";
-    LOG(WARNING) << "Software Keymaster Device -> replace TEE";
-    result[SecurityLevel::SOFTWARE] = new Keymaster3(fbdev, "Software");
-
     if (result[SecurityLevel::SOFTWARE] && !result[SecurityLevel::TRUSTED_ENVIRONMENT]) {
         LOG(WARNING) << "No secure Keymaster implementation found, but device offers insecure"
                         " Keymaster HAL. Using as default.";
         result[SecurityLevel::TRUSTED_ENVIRONMENT] = result[SecurityLevel::SOFTWARE];
-        // result[SecurityLevel::SOFTWARE] = nullptr;
+        result[SecurityLevel::SOFTWARE] = nullptr;
     }
     // The software bit was removed since we do not need it.
-    // https://github.com/ProtonAOSP/android_system_security/blob/cdd3594d90fa7c29999b2ddbb66ff3ed04e4e2ab/keystore/keystore_main.cpp#L119C1-L123C6
-    // if (!result[SecurityLevel::SOFTWARE]) {
-    //     auto fbdev = android::keystore2::makeSoftwareKeymasterDevice();
-    //     CHECK(fbdev.get()) << "Unable to create Software Keymaster Device";
-    //     result[SecurityLevel::SOFTWARE] = new Keymaster3(fbdev, "Software");
-    // }
     return result;
 }
 
@@ -1527,12 +1514,11 @@ KeystoreCompatService::getKeyMintDevice(KeyMintSecurityLevel in_securityLevel,
                                         std::shared_ptr<IKeyMintDevice>* _aidl_return) {
     auto i = mDeviceCache.find(in_securityLevel);
     if (i == mDeviceCache.end()) {
-//        auto device = KeyMintDevice::createKeyMintDevice(in_securityLevel);
-//        auto fbdev = android::keystore2::makeSoftwareKeymasterDevice();
-//        CHECK(fbdev.get()) << "Unable to create Software Keymaster Device";
+        // auto device = KeyMintDevice::createKeyMintDevice(in_securityLevel);
+
+        // ** HACK HERE: always use software **
         LOG(WARNING) << "Software Keymaster Device -> replace TEE";
-//        auto device = new Keymaster3(fbdev, "Software");
-        auto device = KeyMintDevice::createKeyMintDevice(KeyMintSecurityLevel::SOFTWARE);
+        auto device  = KeyMintDevice::createKeyMintDevice(KeyMintSecurityLevel::SOFTWARE);
         if (!device) {
             return ScopedAStatus::fromStatus(STATUS_NAME_NOT_FOUND);
         }

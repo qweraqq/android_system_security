@@ -116,23 +116,27 @@ impl KeystoreService {
         &self,
         sec_level: SecurityLevel,
     ) -> Result<Strong<dyn IKeystoreSecurityLevel>> {
-        let s = SecurityLevel::SOFTWARE;
+
+        // for (k, v) in & self.uuid_by_sec_level {
+        //     log::error!("keystore service uuid_by_sec_level.map -- security level: {:?} -> uuid :{:?}", k, v);
+        // }
+
+        // for (k, v) in & self.i_sec_level_by_uuid {
+        //     log::error!("keystore service i_sec_level_by_uuid.map -- uuid: {:?} -> IKeystoreSecurityLevel :{:?}", k, v);
+        // }
+        
         if let Some(dev) = self
             .uuid_by_sec_level
             .get(&sec_level)
             .and_then(|uuid| self.i_sec_level_by_uuid.get(uuid))
         {
             Ok(dev.clone())
-        } else if let Some(dev) = self
-            .uuid_by_sec_level
-            .get(&s)
-            .and_then(|uuid| self.i_sec_level_by_uuid.get(uuid))
-        {
-            Ok(dev.clone())
         } else if let Some(dev) = self.i_sec_level_by_uuid.values().next() {
+            // any avaliable keystore service
+            log::error!("keystore service get_security_level: security level {:?} unavailable, using any avaliable", &sec_level);
             Ok(dev.clone())
         } else {
-            Err(error::Error::Km(ErrorCode::UNIMPLEMENTED))
+            Err(error::Error::Km(ErrorCode::HARDWARE_TYPE_UNAVAILABLE))
                 .context("In get_security_level: No such security level.")
         }
     }
