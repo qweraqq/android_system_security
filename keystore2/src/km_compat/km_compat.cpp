@@ -31,7 +31,6 @@
 #include <keymasterV4_1/Keymaster.h>
 #include <keymasterV4_1/Keymaster3.h>
 #include <keymasterV4_1/Keymaster4.h>
-
 #include <chrono>
 
 #include "certificate_utils.h"
@@ -1515,11 +1514,27 @@ KeystoreCompatService::getKeyMintDevice(KeyMintSecurityLevel in_securityLevel,
                                         std::shared_ptr<IKeyMintDevice>* _aidl_return) {
     auto i = mDeviceCache.find(in_securityLevel);
     if (i == mDeviceCache.end()) {
-        auto device = KeyMintDevice::createKeyMintDevice(in_securityLevel);
-        if (!device) {
-            return ScopedAStatus::fromStatus(STATUS_NAME_NOT_FOUND);
+        
+        if (in_securityLevel == KeyMintSecurityLevel::STRONGBOX) {
+            auto device = KeyMintDevice::createKeyMintDevice(KeyMintSecurityLevel::SOFTWARE);
+            LOG(ERROR) << "Software Keymaster Device -> replace STRONGBOX";
+            if (!device) {
+                return ScopedAStatus::fromStatus(STATUS_NAME_NOT_FOUND);
+            }
+            i = mDeviceCache.insert(i, {in_securityLevel, std::move(device)});
+        } else {
+            auto device = KeyMintDevice::createKeyMintDevice(in_securityLevel);
+            LOG(ERROR) << "KeystoreCompatService::getKeyMintDevice called";
+
+            // ** HACK HERE: always use software **
+            // May fail to boot on some devices
+            // LOG(WARNING) << "Software Keymaster Device -> replace TEE";
+            // auto device  = KeyMintDevice::createKeyMintDevice(KeyMintSecurityLevel::SOFTWARE);
+            if (!device) {
+                return ScopedAStatus::fromStatus(STATUS_NAME_NOT_FOUND);
+            }
+            i = mDeviceCache.insert(i, {in_securityLevel, std::move(device)});
         }
-        i = mDeviceCache.insert(i, {in_securityLevel, std::move(device)});
     }
     *_aidl_return = i->second;
     return ScopedAStatus::ok();

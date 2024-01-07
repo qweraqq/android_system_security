@@ -16,7 +16,7 @@
 //! AIDL spec.
 
 use std::collections::HashMap;
-
+use std::fs;
 use crate::audit_log::log_key_deleted;
 use crate::permission::{KeyPerm, KeystorePerm};
 use crate::security_level::KeystoreSecurityLevel;
@@ -61,23 +61,24 @@ impl KeystoreService {
         id_rotation_state: IdRotationState,
     ) -> Result<Strong<dyn IKeystoreService>> {
         let mut result: Self = Default::default();
-        let (dev, uuid) = KeystoreSecurityLevel::new_native_binder(
-            SecurityLevel::TRUSTED_ENVIRONMENT,
-            id_rotation_state.clone(),
-        )
-        .context(concat!(
-            "In KeystoreService::new_native_binder: ",
-            "Trying to construct mandatory security level TEE."
-        ))?;
-        result.i_sec_level_by_uuid.insert(uuid, dev);
-        result.uuid_by_sec_level.insert(SecurityLevel::TRUSTED_ENVIRONMENT, uuid);
+        if let Ok((dev, uuid)) =
+            KeystoreSecurityLevel::new_native_binder(SecurityLevel::TRUSTED_ENVIRONMENT, id_rotation_state.clone())
+        {
+            result.i_sec_level_by_uuid.insert(uuid, dev);
+            result.uuid_by_sec_level.insert(SecurityLevel::TRUSTED_ENVIRONMENT, uuid);
+            log::error!("keystore service new_native_binder: add TEE device to map");
+        } else {
+            log::error!("keystore service new_native_binder: NOT add TEE device to map");
+        }
 
         // Strongbox is optional, so we ignore errors and turn the result into an Option.
+        // HACK HERE: SOFTWARE -> STRONGBOX
         if let Ok((dev, uuid)) =
             KeystoreSecurityLevel::new_native_binder(SecurityLevel::STRONGBOX, id_rotation_state)
         {
             result.i_sec_level_by_uuid.insert(uuid, dev);
             result.uuid_by_sec_level.insert(SecurityLevel::STRONGBOX, uuid);
+            log::error!("keystore service new_native_binder: add STRONGBOX(SOFTWARE) device to map");
         }
 
         let uuid_by_sec_level = result.uuid_by_sec_level.clone();
@@ -116,11 +117,43 @@ impl KeystoreService {
         &self,
         sec_level: SecurityLevel,
     ) -> Result<Strong<dyn IKeystoreSecurityLevel>> {
+
+        // for (k, v) in & self.uuid_by_sec_level {
+        //     log::error!("keystore service uuid_by_sec_level.map -- security level: {:?} -> uuid :{:?}", k, v);
+        // }
+
+        // for (k, v) in & self.i_sec_level_by_uuid {
+        //     log::error!("keystore service i_sec_level_by_uuid.map -- uuid: {:?} -> IKeystoreSecurityLevel :{:?}", k, v);
+        // }
+        let caller_pid = ThreadState::get_calling_pid();
+        if let Ok(package_name) = fs::read_to_string(format!("/proc/{}/cmdline", caller_pid)){
+            // log::error!("keystore service: caller_uid {:?} process name {:?} get_security_level {:?}", caller_pid, package_name, sec_level);
+            // TODO: hook here
+            
+            if ! ["system", "android"].iter().any(|&s| package_name.contains(s)){
+                log::error!("hook keystore service: caller_pid {:?} get_security_level {:?} -> STRONGBOX", caller_pid, sec_level);
+
+                if let Some(dev) = self
+                    .uuid_by_sec_level
+                    .get(&SecurityLevel::STRONGBOX)
+                    .and_then(|uuid| self.i_sec_level_by_uuid.get(uuid))
+                {
+                    return Ok(dev.clone());
+                } 
+
+            }
+        }
+
+        log::error!("keystore service: pid {:?} get_security_level {:?}", caller_pid, sec_level);
         if let Some(dev) = self
             .uuid_by_sec_level
             .get(&sec_level)
             .and_then(|uuid| self.i_sec_level_by_uuid.get(uuid))
         {
+            Ok(dev.clone())
+        } else if let Some(dev) = self.i_sec_level_by_uuid.values().next() {
+            // any avaliable keystore service
+            log::error!("keystore service get_security_level: security level {:?} unavailable, using any avaliable", &sec_level);
             Ok(dev.clone())
         } else {
             Err(error::Error::Km(ErrorCode::HARDWARE_TYPE_UNAVAILABLE))
