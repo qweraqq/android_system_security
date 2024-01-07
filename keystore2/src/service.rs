@@ -61,23 +61,24 @@ impl KeystoreService {
         id_rotation_state: IdRotationState,
     ) -> Result<Strong<dyn IKeystoreService>> {
         let mut result: Self = Default::default();
-        let (dev, uuid) = KeystoreSecurityLevel::new_native_binder(
-            SecurityLevel::TRUSTED_ENVIRONMENT,
-            id_rotation_state.clone(),
-        )
-        .context(concat!(
-            "In KeystoreService::new_native_binder: ",
-            "Trying to construct mandatory security level TEE."
-        ))?;
-        result.i_sec_level_by_uuid.insert(uuid, dev);
-        result.uuid_by_sec_level.insert(SecurityLevel::TRUSTED_ENVIRONMENT, uuid);
+        if let Ok((dev, uuid)) =
+            KeystoreSecurityLevel::new_native_binder(SecurityLevel::TRUSTED_ENVIRONMENT, id_rotation_state.clone())
+        {
+            result.i_sec_level_by_uuid.insert(uuid, dev);
+            result.uuid_by_sec_level.insert(SecurityLevel::TRUSTED_ENVIRONMENT, uuid);
+            log::error!("keystore service new_native_binder: add TEE device to map");
+        } else {
+            log::error!("keystore service new_native_binder: NOT add TEE device to map");
+        }
 
         // Strongbox is optional, so we ignore errors and turn the result into an Option.
+        // HACK HERE: SOFTWARE -> STRONGBOX
         if let Ok((dev, uuid)) =
             KeystoreSecurityLevel::new_native_binder(SecurityLevel::STRONGBOX, id_rotation_state)
         {
             result.i_sec_level_by_uuid.insert(uuid, dev);
             result.uuid_by_sec_level.insert(SecurityLevel::STRONGBOX, uuid);
+            log::error!("keystore service new_native_binder: add STRONGBOX(SOFTWARE) device to map");
         }
 
         let uuid_by_sec_level = result.uuid_by_sec_level.clone();
@@ -124,7 +125,7 @@ impl KeystoreService {
         // for (k, v) in & self.i_sec_level_by_uuid {
         //     log::error!("keystore service i_sec_level_by_uuid.map -- uuid: {:?} -> IKeystoreSecurityLevel :{:?}", k, v);
         // }
-        
+        log::error!("keystore service get_security_level {:?}", sec_level);
         if let Some(dev) = self
             .uuid_by_sec_level
             .get(&sec_level)
