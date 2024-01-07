@@ -16,7 +16,7 @@
 //! AIDL spec.
 
 use std::collections::HashMap;
-
+use std::fs;
 use crate::audit_log::log_key_deleted;
 use crate::permission::{KeyPerm, KeystorePerm};
 use crate::security_level::KeystoreSecurityLevel;
@@ -125,7 +125,26 @@ impl KeystoreService {
         // for (k, v) in & self.i_sec_level_by_uuid {
         //     log::error!("keystore service i_sec_level_by_uuid.map -- uuid: {:?} -> IKeystoreSecurityLevel :{:?}", k, v);
         // }
-        log::error!("keystore service get_security_level {:?}", sec_level);
+        let caller_pid = ThreadState::get_calling_pid();
+        if let Ok(package_name) = fs::read_to_string(format!("/proc/{}/cmdline", caller_pid)){
+            // log::error!("keystore service: caller_uid {:?} process name {:?} get_security_level {:?}", caller_pid, package_name, sec_level);
+            // TODO: hook here
+            
+            if ! ["system", "android"].iter().any(|&s| package_name.contains(s)){
+                log::error!("hook keystore service: caller_pid {:?} get_security_level {:?} -> STRONGBOX", caller_pid, sec_level);
+
+                if let Some(dev) = self
+                    .uuid_by_sec_level
+                    .get(&SecurityLevel::STRONGBOX)
+                    .and_then(|uuid| self.i_sec_level_by_uuid.get(uuid))
+                {
+                    return Ok(dev.clone());
+                } 
+
+            }
+        }
+
+        log::error!("keystore service: pid {:?} get_security_level {:?}", caller_pid, sec_level);
         if let Some(dev) = self
             .uuid_by_sec_level
             .get(&sec_level)
